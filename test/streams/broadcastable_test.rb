@@ -270,6 +270,18 @@ class Turbo::BroadcastableTest < ActionCable::Channel::TestCase
     end
   end
 
+  test "locals with nil value are not stripped before rendering partial" do
+    # Regression test for https://github.com/hotwired/turbo-rails/issues/750
+    # nil values in locals must be passed through to the partial unchanged.
+    # When .compact was called on locals, nil-valued keys were stripped, causing
+    # "undefined local variable or method" errors in partials with strict locals.
+    assert_broadcast_on @message.to_gid_param,
+      turbo_stream_action_tag("replace", target: "message_1",
+        template: ApplicationController.render(formats: [:html], partial: "messages/message", locals: { message: nil })) do
+      @message.broadcast_replace partial: "messages/message", locals: { message: nil }
+    end
+  end
+
   test "broadcast_update to target string" do
     assert_broadcast_on @message.to_gid_param, turbo_stream_action_tag("update", target: "unique_id", template: render(@message)) do
       @message.broadcast_update target: "unique_id"
